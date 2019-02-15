@@ -1,0 +1,43 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/elixir:1.7.3
+    working_directory: ~/app
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - elixir-packages-v1-{{ .Branch }}-
+            - elixir-packages-v1-
+      - restore_cache:
+          keys:
+            - elixir-build-v2-{{ .Branch }}-
+            - elixir-build-v2-
+      - run:
+          name: "setup"
+          command: mix do local.hex --force, deps.get
+      - run:
+          name: "compiler warning check"
+          command: mix compile --warnings-as-errors
+      - run:
+          name: "mix format"
+          command: mix format --check-formatted
+      - run:
+          name: "credo"
+          command: mix credo --strict
+      - run:
+          name: "mix test"
+          command: mix test
+      - run:
+          name: "mix dialyzer"
+          command: mix dialyzer --halt-exit-status
+      - save_cache:
+          paths:
+            - ~/app/deps
+          key: elixir-packages-v1-{{ .Branch }}-
+      - save_cache:
+          paths:
+            - ~/app/_build
+            - ~/app/priv/plts
+          key: elixir-build-v2-{{ .Branch }}-
